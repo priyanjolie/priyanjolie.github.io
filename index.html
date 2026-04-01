@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QB Bill Pay — Sales Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f6f8;--s1:#ffffff;--s2:#f0f1f4;--s3:#e8eaee;--bd:#d8dce3;--tx:#1a1d23;--tx2:#5a6170;--tx3:#8a90a0;--green:#0fa67a;--gbg:rgba(15,166,122,.08);--red:#dc3545;--rbg:rgba(220,53,69,.08);--blue:#2b7de9;--bbg:rgba(43,125,233,.08);--amber:#d4860a;--abg:rgba(212,134,10,.08);--purple:#7c5cbf;--pbg:rgba(124,92,191,.08);--cyan:#0e8a9e;--orange:#d4650a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);line-height:1.6;overflow-x:hidden}
+.mono{font-family:'IBM Plex Mono',monospace}
+.hero{text-align:center;padding:56px 24px 40px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(15,166,122,.06) 0%,transparent 70%);pointer-events:none}
+.hero h1{font-size:32px;font-weight:800;letter-spacing:-.8px;background:linear-gradient(135deg,#1a1d23,#0fa67a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;position:relative}
+.hero .sub{color:var(--tx2);font-size:15px}
+.hero-stats{display:flex;justify-content:center;gap:48px;margin-top:24px;flex-wrap:wrap}
+.hero-stat .num{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:700;color:var(--green)}
+.hero-stat .lbl{font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.container{max-width:1400px;margin:0 auto;padding:0 24px 80px}
+.nav{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:36px;padding:8px;background:var(--s1);border-radius:14px;border:1px solid var(--bd);position:sticky;top:12px;z-index:100;backdrop-filter:blur(12px)}
+.nav button{background:transparent;border:none;color:var(--tx3);font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:500;padding:7px 16px;border-radius:8px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.nav button:hover{color:var(--tx2);background:var(--s2)}
+.nav button.active{color:#fff;background:var(--green);font-weight:600}
+.section{display:none;animation:fadeUp .3s ease}.section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.sec-title{font-size:22px;font-weight:700;margin-bottom:6px;letter-spacing:-.3px}
+.sec-sub{color:var(--tx2);font-size:14px;margin-bottom:28px;max-width:700px;line-height:1.7}
+.heading{font-size:16px;font-weight:700;margin:32px 0 14px;display:flex;align-items:center;gap:10px}
+.badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px}
+.badge.g{color:var(--green);background:var(--gbg)}.badge.b{color:var(--blue);background:var(--bbg)}.badge.a{color:var(--amber);background:var(--abg)}.badge.r{color:var(--red);background:var(--rbg)}
+.g{display:grid;gap:16px;margin-bottom:24px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.g3,.g4{grid-template-columns:1fr 1fr}}@media(max-width:600px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:22px;transition:border-color .2s}
+.card:hover{border-color:var(--tx3)}
+.card .lbl{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;font-weight:500;margin-bottom:10px}
+.card .val{font-family:'IBM Plex Mono',monospace;font-size:36px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+.card .det{font-size:13px;color:var(--tx2);margin-top:6px}
+.chart-box{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:24px;margin-bottom:20px}
+.chart-box .ct{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);margin-bottom:16px}
+.chart-box canvas{width:100%!important;max-height:320px}
+.tbl-wrap{overflow-x:auto;margin-bottom:24px;border-radius:14px;border:1px solid var(--bd);background:var(--s1)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:12px 16px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);border-bottom:1px solid var(--bd);background:var(--s2);white-space:nowrap}
+td{padding:11px 16px;border-bottom:1px solid var(--bd);color:var(--tx2)}
+tr:hover td{background:rgba(15,166,122,.04)}
+td.n{font-family:'IBM Plex Mono',monospace;font-size:12px}
+.p{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap}
+.p.g{color:var(--green);background:var(--gbg)}.p.r{color:var(--red);background:var(--rbg)}.p.b{color:var(--blue);background:var(--bbg)}.p.a{color:var(--amber);background:var(--abg)}.p.pp{color:var(--purple);background:var(--pbg)}
+.tc{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:22px;margin-bottom:14px}
+.tc .th{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.tc .ic{font-size:24px;flex-shrink:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--s2)}
+.tc .tt{font-size:15px;font-weight:700}
+.tc .tc-c{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--green);font-weight:600}
+.tc .td{font-size:13px;color:var(--tx2);line-height:1.7}
+.pb{background:var(--s1);border:1px solid var(--bd);border-radius:14px;margin-bottom:16px;overflow:hidden}
+.pb-o{padding:20px 22px;border-left:4px solid var(--red)}
+.pb-r{padding:20px 22px;background:var(--s2);border-left:4px solid var(--green)}
+.pb .pl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.pb-o .pl{color:var(--red)}.pb-r .pl{color:var(--green)}
+.pb .pw{font-size:12px;color:var(--tx3);margin-bottom:4px;font-weight:500}
+.pb .pq{font-size:13.5px;color:var(--tx2);line-height:1.65}
+.pb-o .pq{font-style:italic}
+.qf{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.qf button{background:var(--s2);border:1px solid var(--bd);color:var(--tx2);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .15s}
+.qf button.active{color:#fff;background:var(--green);border-color:var(--green)}
+.qg{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:800px){.qg{grid-template-columns:1fr}}
+.qc{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:18px}
+.qc:hover{border-color:var(--tx3)}
+.qt{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:10px}
+.qt.pain{color:var(--amber);background:var(--abg)}.qt.aha{color:var(--green);background:var(--gbg)}.qt.obj{color:var(--red);background:var(--rbg)}.qt.skep{color:var(--purple);background:var(--pbg)}
+.qc .qx{font-size:13px;color:var(--tx2);font-style:italic;line-height:1.65;margin-bottom:10px}
+.qc .qm{display:flex;justify-content:space-between;align-items:center}
+.qc .qw{font-size:12px;font-weight:600;color:var(--tx)}
+.qc .qo{font-size:11px;color:var(--tx3)}
+.qc .qr{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px}
+.qr.w{color:var(--green);background:var(--gbg)}.qr.l{color:var(--red);background:var(--rbg)}.qr.pe{color:var(--amber);background:var(--abg)}
+.co{border:1px solid;border-radius:14px;padding:20px 24px;margin-bottom:16px}
+.co.g{border-color:rgba(15,166,122,.3);background:var(--gbg)}.co.g h4{color:var(--green)}
+.co.a{border-color:rgba(212,134,10,.3);background:var(--abg)}.co.a h4{color:var(--amber)}
+.co.r{border-color:rgba(220,53,69,.3);background:var(--rbg)}.co.r h4{color:var(--red)}
+.co.b{border-color:rgba(43,125,233,.3);background:var(--bbg)}.co.b h4{color:var(--blue)}
+.co h4{font-size:14px;font-weight:700;margin-bottom:8px}
+.co p,.co li{font-size:13px;color:var(--tx2);line-height:1.7}
+.co ul{list-style:none;padding:0}.co li{padding:3px 0}.co li::before{content:'→ ';color:var(--tx3)}
+.ins{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:18px 22px;margin-bottom:14px;font-size:14px;color:var(--tx2);line-height:1.7}
+.ins strong{color:var(--tx)}
+.stacked{display:flex;height:32px;border-radius:8px;overflow:hidden;margin:10px 0 6px}
+.stacked>div{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+.sb{background:var(--blue);color:#fff}.sp{background:var(--amber);color:#fff}.se{background:var(--green);color:#fff}
+.leg{display:flex;gap:18px;font-size:12px;color:var(--tx2);margin:6px 0 18px}
+.leg span{display:flex;align-items:center;gap:6px}
+.leg span::before{content:'';width:10px;height:10px;border-radius:3px}
+.leg .lb::before{background:var(--blue)}.leg .lp::before{background:var(--amber)}.leg .le::before{background:var(--green)}
+</style>
+</head>
+<body>
+<div class="hero">
+<h1>QB Bill Pay — Sales Intelligence Dashboard</h1>
+<div class="sub">602 Calls · Atleast 20 mins long · February–March 2026</div>
+<div class="hero-stats">
+<div class="hero-stat"><div class="num">86.4%</div><div class="lbl">Win Rate</div></div>
+<div class="hero-stat"><div class="num">602</div><div class="lbl">Calls Analyzed</div></div>
+<div class="hero-stat"><div class="num" style="color:var(--blue)">+28%</div><div class="lbl">Volume Feb→Mar</div></div>
+<div class="hero-stat"><div class="num" style="color:var(--amber)">93%</div><div class="lbl">Win vs Melio</div></div>
+</div></div>
+<div class="container">
+<div class="nav" id="nav"></div>
+
+<div class="section active" id="s-exec">
+<div class="sec-title">The Full Picture</div>
+<div class="sec-sub">Across 602 calls, the team closed 508 wins with an 86.4% conversion rate. Activity scaled 28% from Feb to Mar while holding win rate steady. The biggest untapped lever: plan mix — 43% of deals default to Basic despite Elite converting at the highest rate.</div>
+<div class="g g2" style="margin-bottom:24px">
+<div class="chart-box"><div class="ct">Outcome Distribution</div><canvas id="ch-outcome"></canvas></div>
+<div class="chart-box"><div class="ct">Weekly Activity & Win Rate</div><canvas id="ch-weekly"></canvas></div>
+</div>
+<div class="g g4">
+<div class="card"><div class="lbl">Overall Win Rate</div><div class="val" style="color:var(--green)">86.4%</div><div class="det">508 won · 80 lost · 14 other</div></div>
+<div class="card"><div class="lbl">Inbound Conversion</div><div class="val" style="color:var(--green)">100%</div><div class="det">19/19 closed-won</div></div>
+<div class="card"><div class="lbl">Outbound Conversion</div><div class="val" style="color:var(--blue)">85.9%</div><div class="det">489 W / 80 L</div></div>
+<div class="card"><div class="lbl">Warm Pipeline</div><div class="val" style="color:var(--amber)">80</div><div class="det">Lost deals — many recoverable</div></div>
+</div>
+<div class="heading">Key Insights <span class="badge g">STRATEGIC</span></div>
+<div class="g g2">
+<div class="tc"><div class="th"><div class="ic">📊</div><div><div class="tt">Basic Plan Over-Reliance</div><div class="tc-c">43% of all deals</div></div></div><div class="td"><strong>259/602 deals</strong> land on Basic. Elite converts at <strong>88.8%</strong> vs Basic 86.2% — reps default to lowest tier instead of matching prospects to higher-value plans.</div></div>
+<div class="tc"><div class="th"><div class="ic">🏆</div><div><div class="tt">Elite Converts Best</div><div class="tc-c">88.8% win rate</div></div></div><div class="td">Elite outperforms Basic and Premium yet only 33.7% of deals touch it. When approval workflows and unlimited payments are positioned early, prospects close at the highest rate.</div></div>
+<div class="tc"><div class="th"><div class="ic">🏗️</div><div><div class="tt">Construction = #1 Vertical</div><div class="tc-c">89.7% WR · 148 calls</div></div></div><div class="td">Highest WR among major verticals plus best Premium mix (34.5%). The 1099 + contractor story is a natural fit. Double down.</div></div>
+<div class="tc"><div class="th"><div class="ic">⚡</div><div><div class="tt">Melio Easiest to Displace</div><div class="tc-c">93.0% win rate vs Melio</div></div></div><div class="td">57 calls mention Melio — we win 93%. Pitch: "Why leave QBO to pay a bill in Melio, then reconcile it back?"</div></div>
+<div class="tc"><div class="th"><div class="ic">📅</div><div><div class="tt">Tue/Thu Power Days</div><div class="tc-c">91.1% vs 82.7% WR</div></div></div><div class="td">Tuesday (91.1%) and Thursday (89.3%) dramatically outperform Wed/Fri (both 82.7%). An 8.4pp gap from scheduling optimization alone.</div></div>
+<div class="tc"><div class="th"><div class="ic">⚠️</div><div><div class="tt">Retail Underperforming</div><div class="tc-c" style="color:var(--red)">79.7% WR — lowest</div></div></div><div class="td">77 calls but only 79.7% conversion. 48% stuck on Basic. Need cash-flow management positioning, not just payments story.</div></div>
+</div>
+<div class="g g2">
+<div class="co g"><h4>🎯 BIGGEST OPPORTUNITY</h4><p>Shifting 15% of Basic deals to Premium/Elite = significant ARR lift. Upsell signals exist in <strong>94% of calls</strong>. Mandate a 3-plan comparison in every demo.</p></div>
+<div class="co r"><h4>⚠️ BIGGEST RISK</h4><p>Retail vertical is the largest underperformer (<strong>79.7% WR</strong> vs 86.4% avg). At 77 calls, a 7pp gap means ~5 lost deals that could've been won. Messaging and plan positioning need vertical-specific tuning.</p></div>
+</div>
+</div>
+
+<div class="section" id="s-plan">
+<div class="sec-title">Plan Intelligence</div>
+<div class="sec-sub">Which plans are sold vs should be sold. Elite converts best but Basic dominates the mix — that disconnect is the core finding.</div>
+<div class="g g2">
+<div class="chart-box"><div class="ct">Plan Distribution</div><canvas id="ch-pdonut"></canvas></div>
+<div class="chart-box"><div class="ct">Win Rate by Plan</div><canvas id="ch-pwr"></canvas></div>
+</div>
+<div class="stacked"><div class="sb" style="width:43%">Basic 43%</div><div class="sp" style="width:23.3%">Premium 23%</div><div class="se" style="width:33.7%">Elite 34%</div></div>
+<div class="leg"><span class="lb">Basic (259 · 86.2% WR)</span><span class="lp">Premium (140 · 83.3% WR)</span><span class="le">Elite (203 · 88.8% WR)</span></div>
+<div class="tbl-wrap"><table>
+<tr><th>Plan</th><th>%</th><th>#</th><th>Won</th><th>Lost</th><th>WR</th><th>Driver</th><th>Risk</th></tr>
+<tr><td><span class="p b">Basic</span></td><td class="n">43%</td><td class="n">259</td><td class="n">219</td><td class="n">35</td><td><span class="p g">86.2%</span></td><td>Included in QBO</td><td style="color:var(--red)">Over-indexed</td></tr>
+<tr><td><span class="p a">Premium</span></td><td class="n">23%</td><td class="n">140</td><td class="n">115</td><td class="n">23</td><td><span class="p a">83.3%</span></td><td>1099 + contractors</td><td style="color:var(--red)">Under-sold</td></tr>
+<tr><td><span class="p g">Elite</span></td><td class="n">34%</td><td class="n">203</td><td class="n">174</td><td class="n">22</td><td><span class="p g">88.8%</span></td><td>Approvals, unlimited</td><td style="color:var(--amber)">Under-presented</td></tr>
+</table></div>
+<div class="g g2">
+<div class="co b"><h4>Basic → Premium Signals (94% of calls)</h4><ul><li>Mentions contractors / subcontractors</li><li>Asks about 1099 filing</li><li>Pays &gt;5 vendors/month</li><li>"Growing," "expanding," "hiring"</li></ul></div>
+<div class="co g"><h4>Premium → Elite Signals (95% of calls)</h4><ul><li>Mentions approval workflows</li><li>Multiple team members processing payments</li><li>High volume ("hundreds of bills")</li><li>Compliance / audit requirements</li></ul></div>
+</div>
+</div>
+
+<div class="section" id="s-wins">
+<div class="sec-title">What Wins Deals</div>
+<div class="sec-sub">Winning calls: agent uncovers concrete pain, makes savings tangible, and activates on the call before momentum fades.</div>
+<div class="chart-box"><div class="ct">What Winning Calls Talk About</div><canvas id="ch-topics" style="max-height:350px"></canvas></div>
+<div class="g g2">
+<div class="tc"><div class="th"><div class="ic">⚙️</div><div><div class="tt">Manual Process → Automation</div><div class="tc-c">~55% of wins</div></div></div><div class="td">Tracking bills by hand, writing checks, logging into portals — automation resonated immediately.</div></div>
+<div class="tc"><div class="th"><div class="ic">🔄</div><div><div class="tt">Auto-Reconciliation = "Aha"</div><div class="tc-c">87% mention visibility</div></div></div><div class="td">Matching payments back to bills was taking real time. Auto-reconciliation was the closing moment.</div></div>
+<div class="tc"><div class="th"><div class="ic">💰</div><div><div class="tt">Cost Savings (Checks / Fees)</div><div class="tc-c">Strong close driver</div></div></div><div class="td">When agents tied ACH savings to check costs, prospects did the math themselves and agreed.</div></div>
+<div class="tc"><div class="th"><div class="ic">✅</div><div><div class="tt">Activated on the Call</div><div class="tc-c">Top performer pattern</div></div></div><div class="td">Prospect said yes, agent walked through setup live. No follow-up needed. Top agents do this 2-3x more.</div></div>
+</div>
+</div>
+
+<div class="section" id="s-losses">
+<div class="sec-title">What Kills Deals</div>
+<div class="sec-sub">Most common isn't rejection — it's "it works fine for now." Agents who fail to surface hidden costs of the status quo rarely create urgency.</div>
+<div class="chart-box"><div class="ct">Objections: Frequency vs Win Rate</div><canvas id="ch-obj" style="max-height:350px"></canvas></div>
+<div class="tbl-wrap"><table>
+<tr><th>Objection</th><th>Freq</th><th>% Calls</th><th>Win If Present</th><th>Handling</th></tr>
+<tr><td>Price / Cost</td><td class="n">431</td><td class="n">72%</td><td><span class="p g">86.6%</span></td><td><span class="p g">Well Handled</span></td></tr>
+<tr><td>Feature Gaps</td><td class="n">344</td><td class="n">57%</td><td><span class="p g">87.6%</span></td><td><span class="p g">Well Handled</span></td></tr>
+<tr><td>ACH Timing</td><td class="n">213</td><td class="n">35%</td><td><span class="p g">87.6%</span></td><td><span class="p g">Well Handled</span></td></tr>
+<tr><td>Need to Consult</td><td class="n">169</td><td class="n">28%</td><td><span class="p a">84.7%</span></td><td><span class="p a">Moderate</span></td></tr>
+<tr><td>Complexity</td><td class="n">21</td><td class="n">3.5%</td><td><span class="p r">71.4%</span></td><td><span class="p r">Weak</span></td></tr>
+</table></div>
+</div>
+
+<div class="section" id="s-playbook">
+<div class="sec-title">Overcoming Objections</div>
+<div class="sec-sub">Real moments from calls that ended in a Win — the exact objection and what actually worked.</div>
+<div class="pb"><div class="pb-o"><div class="pl">🗣 PROSPECT OBJECTION</div><div class="pw">Prospect · Price-sensitive small business</div><div class="pq">"I don't want to pay money to pay people. I think it's crazy."</div></div><div class="pb-r"><div class="pl">💬 HOW AGENT RESPONDED</div><div class="pw">Mathew Flahaven</div><div class="pq">"Even if it's 15 bucks a month, you probably pay yourself more than that in an hour. If that's an hour a week, four hours a month — this saves you way more than it costs."</div></div></div>
+<div class="pb"><div class="pb-o"><div class="pl">🗣 PROSPECT OBJECTION</div><div class="pw">Tammy · Bill Kirkland Heating</div><div class="pq">"I just go in and use the pay bill option and do a draft print of a check. So I don't think it's going to be necessary."</div></div><div class="pb-r"><div class="pl">💬 HOW AGENT RESPONDED</div><div class="pw">Mathew Flahaven</div><div class="pq">"The biggest difference: all those ACH transactions through your bank — you then have to log into QuickBooks and manually enter those. If it goes through Bill Pay, all of that is automatically done."</div></div></div>
+<div class="pb"><div class="pb-o"><div class="pl">🗣 PROSPECT OBJECTION</div><div class="pw">Heather · Aveera Medical Inc</div><div class="pq">"I currently use Bill.com for all my payables. It would be nice not to have two different platforms and two different monthly fees."</div></div><div class="pb-r"><div class="pl">💬 HOW AGENT RESPONDED</div><div class="pw">Jonathon Cantrell</div><div class="pq">"Absolutely. Let me understand what you guys do so I can show you exactly how this replaces Bill.com inside the tool you already use — one platform, one fee."</div></div></div>
+<div class="pb"><div class="pb-o"><div class="pl">🗣 PROSPECT OBJECTION</div><div class="pw">Marcus · Burkholder's Repair LLC</div><div class="pq">"One of the key things for me was make it recurring — just 'it came out of the account, we're good.'"</div></div><div class="pb-r"><div class="pl">💬 HOW AGENT RESPONDED</div><div class="pw">Miles Colewell</div><div class="pq">"If you have five to seven more minutes, I can process it on your account right now. I'll send you an activation email, you click activate, and I'll walk you through paying a bill."</div></div></div>
+<div class="pb"><div class="pb-o"><div class="pl">🗣 PROSPECT OBJECTION</div><div class="pw">Customer · Carolina Homes Inc</div><div class="pq">"I just wanted to confirm — this is included in our plan? It's not a promo or free trial?"</div></div><div class="pb-r"><div class="pl">💬 HOW AGENT RESPONDED</div><div class="pw">Ryan Weakley</div><div class="pq">"Exactly. It's not a promo. With this one, it's included in your account indefinitely. No additional subscription for our basic."</div></div></div>
+</div>
+
+<div class="section" id="s-industry">
+<div class="sec-title">Industry Intelligence</div>
+<div class="sec-sub">Construction and Prof Services dominate volume and win rate. Technology is under-monetized at 54% Basic.</div>
+<div class="chart-box"><div class="ct">Industry: Volume & Win Rate</div><canvas id="ch-ind" style="max-height:350px"></canvas></div>
+<div class="tbl-wrap"><table>
+<tr><th>Industry</th><th>%</th><th>#</th><th>WR</th><th>Basic</th><th>Prem</th><th>Elite</th><th>Action</th></tr>
+<tr><td>Prof Services</td><td class="n">27%</td><td class="n">164</td><td><span class="p g">86.8%</span></td><td class="n">39%</td><td class="n">20%</td><td class="n">42%</td><td><span class="p g">DOUBLE DOWN</span></td></tr>
+<tr><td>Construction</td><td class="n">25%</td><td class="n">148</td><td><span class="p g">89.7%</span></td><td class="n">39%</td><td class="n">35%</td><td class="n">26%</td><td><span class="p g">DOUBLE DOWN</span></td></tr>
+<tr><td>Technology</td><td class="n">21%</td><td class="n">124</td><td><span class="p g">87.0%</span></td><td class="n">54%</td><td class="n">15%</td><td class="n">32%</td><td><span class="p a">FIX Basic%</span></td></tr>
+<tr><td>Retail</td><td class="n">13%</td><td class="n">77</td><td><span class="p r">79.7%</span></td><td class="n">48%</td><td class="n">20%</td><td class="n">33%</td><td><span class="p r">FIX conv</span></td></tr>
+<tr><td>Transportation</td><td class="n">4.5%</td><td class="n">27</td><td><span class="p g">84.6%</span></td><td class="n">22%</td><td class="n">19%</td><td class="n">59%</td><td><span class="p b">EXPAND</span></td></tr>
+<tr><td>Healthcare</td><td class="n">3.8%</td><td class="n">23</td><td><span class="p g">87.0%</span></td><td class="n">30%</td><td class="n">44%</td><td class="n">26%</td><td><span class="p b">EXPAND</span></td></tr>
+</table></div>
+</div>
+
+<div class="section" id="s-comp">
+<div class="sec-title">Competitive Intelligence</div>
+<div class="sec-sub">Chase is #1 incumbent (149 calls). Melio is easiest displacement (93% WR). Ramp is most dangerous emerging competitor.</div>
+<div class="chart-box"><div class="ct">Competitor Mentions & Win Rate</div><canvas id="ch-comp" style="max-height:320px"></canvas></div>
+<div class="tbl-wrap"><table>
+<tr><th>Competitor</th><th>Mentions</th><th>WR vs</th><th>W</th><th>L</th><th>Win Driver</th></tr>
+<tr><td><strong>Chase</strong></td><td class="n">149</td><td><span class="p g">84.3%</span></td><td class="n">118</td><td class="n">22</td><td>QBO integration</td></tr>
+<tr><td><strong>Melio</strong></td><td class="n">57</td><td><span class="p g">93.0%</span></td><td class="n">53</td><td class="n">4</td><td>Built into QBO</td></tr>
+<tr><td><strong>Bank Bill Pay</strong></td><td class="n">42</td><td><span class="p g">83.3%</span></td><td class="n">35</td><td class="n">7</td><td>Reconciliation</td></tr>
+<tr><td><strong>Ramp</strong></td><td class="n">18</td><td><span class="p a">83.3%</span></td><td class="n">15</td><td class="n">3</td><td>Pricing, integration</td></tr>
+</table></div>
+</div>
+
+<div class="section" id="s-voc">
+<div class="sec-title">What Customers Actually Said</div>
+<div class="sec-sub">Verbatim quotes from 602 calls. Filter by category for coaching, messaging, and objection handling.</div>
+<div class="qf" id="qf"><button class="active" data-c="all">All (20)</button><button data-c="pain">⚠️ Pain Points</button><button data-c="aha">💡 Aha Moments</button><button data-c="obj">🚫 Objections</button><button data-c="skep">🤔 Skepticism</button></div>
+<div class="qg" id="qg"></div>
+</div>
+
+<div class="section" id="s-time">
+<div class="sec-title">Time & Seasonality</div>
+<div class="sec-sub">Tue/Thu are best. An 8.4pp gap over Wed/Fri from day-of-week alone.</div>
+<div class="g g2">
+<div class="chart-box"><div class="ct">Win Rate by Day</div><canvas id="ch-day"></canvas></div>
+<div class="chart-box"><div class="ct">Call Duration Distribution</div><canvas id="ch-dur"></canvas></div>
+</div>
+<div class="co b"><h4>Action: Reschedule Outbound Blitzes</h4><p>Prioritize high-value outbound for <strong>Tue/Thu</strong>. Use Wed/Fri for discovery and follow-ups. This single change could lift overall WR by 2-3pp.</p></div>
+</div>
+
+<div class="section" id="s-strat">
+<div class="sec-title">Strategic Recommendations</div>
+<div class="sec-sub">What to do next for Sales, Marketing, and Product.</div>
+<div class="heading">Sales <span class="badge g">ACTION</span></div>
+<div class="g g2">
+<div class="co g"><h4>Messaging</h4><ul><li>Lead with cost-per-check math</li><li>"Why leave QBO to pay in [competitor]?"</li><li>Retail: cash-flow management angle</li><li>Quantify 1099 pain</li></ul></div>
+<div class="co g"><h4>Upsell Strategy</h4><ul><li>Mandatory 3-plan comparison in every demo</li><li>5+ vendors → skip Basic, open with Premium</li><li>Multi-user → open with Elite</li><li>Lead with approval workflow value prop for Elite prospects</li></ul></div>
+</div>
+<div class="heading">Marketing <span class="badge b">TARGETING</span></div>
+<div class="g g2">
+<div class="co b"><h4>Industry Targeting</h4><ul><li>Double down: Construction, Prof Svcs, Healthcare, Transport</li><li>Vertical-specific landing pages</li><li>Construction: "Pay subs + auto-file 1099s"</li></ul></div>
+<div class="co b"><h4>Positioning</h4><ul><li>Stop leading with "free Basic"</li><li>Premium = recommended plan in marketing</li><li>vs Melio: "Already in QBO? Why leave?"</li></ul></div>
+</div>
+<div class="heading">Product <span class="badge a">GAPS</span></div>
+<div class="g g2">
+<div class="co a"><h4>Feature Gaps</h4><ul><li>International payments (16% of calls)</li><li>Same-day ACH (35% objection rate)</li><li>AI invoice processing (Ramp parity)</li></ul></div>
+<div class="co a"><h4>Plan Gaps</h4><ul><li>"Basic Plus" at $10/mo for 15 txns</li><li>Premium 40-txn cap limits mid-market</li><li>Elite onboarding — guided setup needed</li></ul></div>
+</div>
+<div class="heading">🎯 Final Call-Outs <span class="badge r">MANDATORY</span></div>
+<div class="g g2">
+<div class="co g"><h4>Plans to PUSH</h4><ul><li>Premium: 23% → should be 35%+</li><li>Elite: highest WR but only 34% → target 40%+</li></ul></div>
+<div class="co r"><h4>Over-Relying on Basic</h4><ul><li>Technology (54% Basic)</li><li>Retail (48% Basic)</li><li>Manufacturing (63% Basic)</li></ul></div>
+<div class="co a"><h4>Top 3 Missed Revenue</h4><ul><li>Tech at 54% Basic → shift to Prem/Elite</li><li>Retail 79.7% WR → vertical talk track could recover ~5 deals/mo</li><li>Wed/Fri gap → scheduling adds 5+ wins/mo</li></ul></div>
+<div class="co g"><h4>Top 3 Fastest WR Wins</h4><ul><li>Mandatory 3-plan comparison → shift Basic deals to Premium/Elite</li><li>Tue/Thu outbound blitz → +2-3pp WR</li><li>Retail talk track → recover 7pp gap</li></ul></div>
+</div>
+</div>
+</div>
+
+<script>
+/* === NAV (no Agents tab) === */
+const S=[
+  {id:'s-exec',l:'Full Picture'},
+  {id:'s-plan',l:'Plan Intel'},
+  {id:'s-wins',l:'What Wins'},
+  {id:'s-losses',l:'What Kills'},
+  {id:'s-playbook',l:'Objection Playbook'},
+  {id:'s-industry',l:'Industry'},
+  {id:'s-comp',l:'Competitive'},
+  {id:'s-voc',l:'VOC Quotes'},
+  {id:'s-time',l:'Time & Season'},
+  {id:'s-strat',l:'Strategy'}
+];
+const N=document.getElementById('nav');
+
+function showSection(id){
+  document.querySelectorAll('.section').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(e=>e.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector('.nav button[data-id="'+id+'"]').classList.add('active');
+  // Lazy-init charts for this section after it becomes visible
+  setTimeout(function(){ initCharts(id); },60);
+}
+
+S.forEach(function(s,i){
+  var b=document.createElement('button');
+  b.textContent=s.l;
+  b.setAttribute('data-id',s.id);
+  if(i===0) b.className='active';
+  b.onclick=function(){ showSection(s.id); };
+  N.appendChild(b);
+});
+
+/* === CHART SETUP === */
+Chart.defaults.color='#5a6170';
+Chart.defaults.borderColor='rgba(0,0,0,.08)';
+Chart.defaults.font.family="'Outfit',sans-serif";
+Chart.defaults.font.size=12;
+Chart.defaults.plugins.legend.labels.usePointStyle=true;
+Chart.defaults.plugins.legend.labels.pointStyleWidth=8;
+Chart.defaults.plugins.legend.labels.boxHeight=8;
+
+var G='#0fa67a',R='#dc3545',B='#2b7de9',A='#d4860a',P='#7c5cbf';
+
+/* === LAZY CHART INIT === */
+var done={};
+function initCharts(sid){
+  if(done[sid]) return;
+  done[sid]=true;
+
+  if(sid==='s-exec'){
+    new Chart(document.getElementById('ch-outcome'),{type:'doughnut',data:{labels:['Wins','Losses','Support','Pending'],datasets:[{data:[508,80,10,4],backgroundColor:[G,R,A,'#8a90a0'],borderWidth:0,hoverOffset:6}]},options:{cutout:'65%',plugins:{legend:{position:'right'}}}});
+    new Chart(document.getElementById('ch-weekly'),{type:'bar',data:{labels:['Wk6','Wk7','Wk8','Wk9','Wk10','Wk11','Wk12','Wk13','Wk14'],datasets:[{label:'Total',data:[71,64,63,66,78,87,77,81,15],backgroundColor:'rgba(43,125,233,.2)',borderColor:B,borderWidth:1,borderRadius:4,order:2},{label:'Wins',data:[60,51,54,58,68,69,63,72,13],backgroundColor:'rgba(15,166,122,.2)',borderColor:G,borderWidth:1,borderRadius:4,order:2},{type:'line',label:'Win Rate %',data:[84.5,81,88.5,89.2,90.7,84.1,82.9,90,86.7],borderColor:G,backgroundColor:'transparent',pointBackgroundColor:G,pointRadius:4,tension:.3,yAxisID:'y1',order:1}]},options:{scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.06)'}},y1:{position:'right',min:60,max:100,ticks:{callback:function(v){return v+'%'}},grid:{display:false}}}}});
+  }
+  if(sid==='s-plan'){
+    new Chart(document.getElementById('ch-pdonut'),{type:'doughnut',data:{labels:['Basic 43%','Premium 23%','Elite 34%'],datasets:[{data:[259,140,203],backgroundColor:[B,A,G],borderWidth:0,hoverOffset:6}]},options:{cutout:'65%',plugins:{legend:{position:'right'}}}});
+    new Chart(document.getElementById('ch-pwr'),{type:'bar',data:{labels:['Basic','Premium','Elite'],datasets:[{label:'Win Rate',data:[86.2,83.3,88.8],backgroundColor:[B+'99',A+'99',G+'99'],borderColor:[B,A,G],borderWidth:2,borderRadius:6}]},options:{indexAxis:'y',scales:{x:{min:75,max:95,ticks:{callback:function(v){return v+'%'}}}},plugins:{legend:{display:false}}}});
+  }
+  if(sid==='s-wins'){
+    new Chart(document.getElementById('ch-topics'),{type:'bar',data:{labels:['Bank Integration','Vendor Mgmt','Visibility','Approvals','Manual Checks','Cash Flow','Intl Payments'],datasets:[{data:[97,93,87,77,33,16,16],backgroundColor:[B+'55','#0e8a9e55',G+'55',A+'55',P+'55','#d4650a55',R+'55'],borderRadius:4}]},options:{indexAxis:'y',scales:{x:{ticks:{callback:function(v){return v+'%'}}}},plugins:{legend:{display:false}}}});
+  }
+  if(sid==='s-losses'){
+    new Chart(document.getElementById('ch-obj'),{type:'bar',data:{labels:['Price','Features','Trust','ACH Time','Consult','Complexity'],datasets:[{label:'Win Rate %',data:[86.6,87.6,87.8,87.6,84.7,71.4],backgroundColor:[G+'77',G+'77',G+'77',G+'77',A+'77',R+'77'],borderRadius:4},{label:'Frequency',data:[431,344,224,213,169,21],backgroundColor:'rgba(43,125,233,.12)',borderColor:B,borderWidth:1,borderRadius:4,yAxisID:'y1'}]},options:{scales:{y:{ticks:{callback:function(v){return v+'%'}},max:100},y1:{position:'right',grid:{display:false}}}}});
+  }
+  if(sid==='s-industry'){
+    new Chart(document.getElementById('ch-ind'),{type:'bar',data:{labels:['Prof Svcs','Construction','Tech','Retail','Transport','Healthcare','Real Estate'],datasets:[{label:'Calls',data:[164,148,124,77,27,23,18],backgroundColor:B+'55',borderColor:B,borderWidth:1,borderRadius:4},{type:'line',label:'Win Rate',data:[86.8,89.7,87,79.7,84.6,87,72.2],borderColor:G,pointBackgroundColor:G,pointRadius:5,tension:.3,yAxisID:'y1'}]},options:{scales:{y:{beginAtZero:true},y1:{position:'right',min:60,max:100,ticks:{callback:function(v){return v+'%'}},grid:{display:false}}}}});
+  }
+  if(sid==='s-comp'){
+    new Chart(document.getElementById('ch-comp'),{type:'bar',data:{labels:['Chase','Melio','Bank BP','Zelle','PayPal','Venmo','Ramp'],datasets:[{label:'Mentions',data:[149,57,42,31,26,25,18],backgroundColor:B+'55',borderColor:B,borderWidth:1,borderRadius:4},{type:'line',label:'Win Rate',data:[84.3,93,83.3,83.9,84.6,88,83.3],borderColor:G,pointBackgroundColor:G,pointRadius:5,tension:.3,yAxisID:'y1'}]},options:{scales:{y:{beginAtZero:true},y1:{position:'right',min:70,max:100,ticks:{callback:function(v){return v+'%'}},grid:{display:false}}}}});
+  }
+  if(sid==='s-time'){
+    new Chart(document.getElementById('ch-day'),{type:'bar',data:{labels:['Mon','Tue','Wed','Thu','Fri'],datasets:[{data:[85.7,91.1,82.7,89.3,82.7],backgroundColor:[B+'66',G+'88',A+'66',G+'88',A+'66'],borderColor:[B,G,A,G,A],borderWidth:2,borderRadius:6}]},options:{scales:{y:{min:75,max:95,ticks:{callback:function(v){return v+'%'}}}},plugins:{legend:{display:false}}}});
+    new Chart(document.getElementById('ch-dur'),{type:'bar',data:{labels:['0-10m','11-20m','21-30m','31-40m','41-50m','51-60m','60m+'],datasets:[{data:[45,85,140,120,95,72,45],backgroundColor:B+'55',borderColor:B,borderWidth:1,borderRadius:6}]},options:{plugins:{legend:{display:false}}}});
+  }
+  if(sid==='s-voc'){
+    rQ('all');
+  }
+}
+
+// Init the first section immediately (it's visible on load)
+initCharts('s-exec');
+
+/* === VOC QUOTES === */
+var Q=[
+{c:'pain',t:'"I have to create the purchase order, copy to bill, schedule payment, and manually mark as paid."',w:'Customer',o:'Professional Services',r:'w'},
+{c:'pain',t:'"We write 20-25 checks a week. It\'s kind of just historical — started long before electronic."',w:'Gary',o:'Lake Wine and Spirits',r:'w'},
+{c:'pain',t:'"I have a couple of vendors I hand them checks. I really wish I didn\'t have to."',w:'Erin',o:'Red Rock Partners',r:'w'},
+{c:'pain',t:'"There\'s kind of a bit of a mess there, but I\'m finally getting it under wraps after like 10 years."',w:'Jake',o:'Northern Event Rentals',r:'w'},
+{c:'pain',t:'"If you\'re spending an hour — we charge 105/hr. 20 minutes a week is 80 min — that\'s $105/mo lost."',w:'Myra',o:'SOUTHEAST L.P.TANK INSP.',r:'w'},
+{c:'aha',t:'"I think we\'ll go ahead and upgrade. It\'s kind of a no brainer. Once you presented the savings — our AP is just going to keep growing."',w:'Jenny',o:'JENNIFER HAIRSTON',r:'w'},
+{c:'aha',t:'"That sounds great. All the things you mentioned are things I\'m trying to automate right now."',w:'Adam',o:'Absolute Audio Visual',r:'w'},
+{c:'aha',t:'"We\'ve been doing our own research and I think we\'d fit pretty neatly in the premium plan."',w:'Amelia',o:'Bald Cypress Builders',r:'w'},
+{c:'aha',t:'"We were using Melio. As soon as they left QuickBooks, they started turning into a nightmare. So we switched back."',w:'Jenny',o:'JENNIFER HAIRSTON',r:'w'},
+{c:'aha',t:'"Bill pay premium sounds cheaper than what I was doing — I\'d have to do 1099s on top, which was $300-400."',w:'Jean',o:'Louisiana Folk Roots',r:'w'},
+{c:'obj',t:'"I don\'t want to pay money to pay people. I think it\'s crazy."',w:'Customer',o:'Retail business',r:'l'},
+{c:'obj',t:'"QuickBooks payment is $63/mo. We don\'t want to pay that. We want the free part."',w:'Jennifer',o:'McSwane Group',r:'l'},
+{c:'obj',t:'"I already have a good system. I don\'t have time right now to learn a new system."',w:'Naomi',o:'On-Site Restoration',r:'pe'},
+{c:'obj',t:'"Our accountant\'s other client started with QB Bill Pay and ended up switching to Bill.com."',w:'Ilana',o:'Sticky Fingers Sweets',r:'pe'},
+{c:'obj',t:'"We are far behind in technology. Can you quickly walk me through from beginning to end?"',w:'Patricia',o:'Domestic Violence Crisis Ctr',r:'w'},
+{c:'skep',t:'"Are there delays in ACH through QuickBooks versus directly from our bank?"',w:'Adam',o:'Absolute Audio Visual',r:'w'},
+{c:'skep',t:'"I\'m not sure I want that to happen — it charges each time a payment runs through."',w:'Sherry',o:'AES Automotive Equipment',r:'pe'},
+{c:'skep',t:'"Can I go basic now and move up to premium later? We don\'t have many vendors yet."',w:'Melissa',o:'La Voz Latina de Florida',r:'l'},
+{c:'skep',t:'"One of the thorns in our side is the way fees get categorized back in QuickBooks."',w:'Shawn',o:'Foundry Electric',r:'w'},
+{c:'skep',t:'"I tried the AI input on QuickBooks — it\'s somewhat okay but I had to change so many things I quit."',w:'Ruth',o:'A+ Auto & Diesel',r:'l'}
+];
+
+function rQ(c){
+  var g=document.getElementById('qg');
+  g.innerHTML='';
+  var f=c==='all'?Q:Q.filter(function(q){return q.c===c});
+  f.forEach(function(q){
+    var tl={pain:'⚠️ Pain Point',aha:'💡 Aha Moment',obj:'🚫 Objection',skep:'🤔 Skepticism'}[q.c];
+    var rl={w:'Win',l:'Loss',pe:'Pending'}[q.r];
+    var rc={w:'w',l:'l',pe:'pe'}[q.r];
+    g.innerHTML+='<div class="qc"><div class="qt '+q.c+'">'+tl+'</div><div class="qx">'+q.t+'</div><div class="qm"><div><div class="qw">'+q.w+'</div><div class="qo">'+q.o+'</div></div><span class="qr '+rc+'">'+rl+'</span></div></div>';
+  });
+}
+rQ('all');
+
+document.querySelectorAll('#qf button').forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll('#qf button').forEach(function(x){x.classList.remove('active')});
+    b.classList.add('active');
+    rQ(b.getAttribute('data-c'));
+  };
+});
+</script>
+</body>
+</html>
